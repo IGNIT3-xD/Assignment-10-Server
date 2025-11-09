@@ -26,6 +26,25 @@ app.get('/', (req, res) => {
 async function run() {
     try {
         await client.connect();
+        const db = client.db('home_hero')
+        const services = db.collection('services')
+
+        //Home
+        app.get('/top-services', async (req, res) => {
+            const cursor = services.find().limit(6).sort({ rating: -1 })
+            const result = await cursor.toArray()
+            res.send(result)
+        })
+
+        //Services
+        app.get('/services', async (req, res) => {
+            const cursor = services.find()
+            const result = await cursor.toArray()
+            res.send(result)
+        })
+
+        
+
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     }
