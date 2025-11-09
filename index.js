@@ -52,10 +52,19 @@ async function run() {
             res.send(result)
         })
 
-        //Get booking data
+        //Get booking data from cutomer
         app.post('/booking', async (req, res) => {
             const newBooking = req.body
             const result = await booking.insertOne(newBooking)
+            res.send(result)
+        })
+
+        //My bookings
+        app.get('/booking', async (req, res) => {
+            const email = req.query.email
+            // console.log(email);
+            const cursor = booking.find({ customer_email: email })
+            const result = await cursor.toArray()
             res.send(result)
         })
 
