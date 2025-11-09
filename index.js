@@ -63,8 +63,15 @@ async function run() {
         app.get('/booking', async (req, res) => {
             const email = req.query.email
             // console.log(email);
-            const cursor = booking.find({ customer_email: email })
+            const cursor = booking.find({ customer_email: email }).sort({ date: 1 })
             const result = await cursor.toArray()
+            res.send(result)
+        })
+
+        //Delete booking
+        app.delete('/booking/:id', async (req, res) => {
+            const query = { _id: new ObjectId(req.params.id) }
+            const result = await booking.deleteOne(query)
             res.send(result)
         })
 
