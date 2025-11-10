@@ -30,21 +30,21 @@ async function run() {
         const services = db.collection('services')
         const booking = db.collection('booking')
 
-        //Home
+        // Home
         app.get('/top-services', async (req, res) => {
             const cursor = services.find().limit(6).sort({ rating: -1 })
             const result = await cursor.toArray()
             res.send(result)
         })
 
-        //Services
+        // Services
         app.get('/services', async (req, res) => {
             const cursor = services.find()
             const result = await cursor.toArray()
             res.send(result)
         })
 
-        //Service details
+        // Service details
         app.get('/services/:id', async (req, res) => {
             // console.log(req.params.id);
             const query = { _id: new ObjectId(req.params.id) }
@@ -52,14 +52,14 @@ async function run() {
             res.send(result)
         })
 
-        //Get booking data from cutomer
+        // Get booking data from customer
         app.post('/booking', async (req, res) => {
             const newBooking = req.body
             const result = await booking.insertOne(newBooking)
             res.send(result)
         })
 
-        //My bookings
+        // My bookings
         app.get('/booking', async (req, res) => {
             const email = req.query.email
             // console.log(email);
@@ -68,10 +68,17 @@ async function run() {
             res.send(result)
         })
 
-        //Delete booking
+        // Delete booking
         app.delete('/booking/:id', async (req, res) => {
             const query = { _id: new ObjectId(req.params.id) }
             const result = await booking.deleteOne(query)
+            res.send(result)
+        })
+
+        // Add services
+        app.post('/services', async (req, res) => {
+            const newService = req.body
+            const result = await services.insertOne(newService)
             res.send(result)
         })
 
