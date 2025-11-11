@@ -39,7 +39,13 @@ async function run() {
 
         // Services
         app.get('/services', async (req, res) => {
-            const cursor = services.find()
+
+            const min = parseFloat(req.query.min) || 0;
+            const max = parseFloat(req.query.max) || Infinity;
+
+            const cursor = services.find({
+                ratePerHour: { $gte: min, $lte: max }
+            });
             const result = await cursor.toArray()
             res.send(result)
         })
