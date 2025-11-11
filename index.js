@@ -29,6 +29,7 @@ async function run() {
         const db = client.db('home_hero')
         const services = db.collection('services')
         const booking = db.collection('booking')
+        const reviews = db.collection('reviews')
 
         // Home
         app.get('/top-services', async (req, res) => {
@@ -115,6 +116,47 @@ async function run() {
             }
 
             const result = await services.updateOne(query, update)
+            res.send(result)
+        })
+
+        // Review and rating
+        app.post('/reviews', async (req, res) => {
+            const { serviceId, userEmail, userName, rating, comment } = req.body;
+            // console.log(req.body);
+            const newReview = {
+                serviceId: new ObjectId(serviceId),
+                userEmail,
+                userName,
+                rating,
+                comment,
+            };
+
+            const result = await reviews.insertOne(newReview);
+
+            const reviewsList = await reviews.find({ serviceId: new ObjectId(serviceId) }).toArray();
+            const total = reviewsList.reduce((sum, r) => sum + r.rating, 0)
+            const avgRating = total / reviewsList.length
+
+            await services.updateOne(
+                { _id: new ObjectId(serviceId) },
+                { $set: { rating: avgRating } }
+            )
+
+            res.send(result)
+        })
+
+        // Get all reviews
+        app.get('/reviews', async (req, res) => {
+            const cursor = reviews.find()
+            const result = await cursor.toArray()
+            res.send(result)
+        })
+
+        // Get reviews by per service
+        app.get('/reviews/:serviceId', async (req, res) => {
+            const query = { serviceId: new ObjectId(req.params.serviceId) }
+            // console.log(query);
+            const result = await reviews.find(query).toArray()
             res.send(result)
         })
 
