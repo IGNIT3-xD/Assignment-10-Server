@@ -160,6 +160,14 @@ async function run() {
             res.send(result)
         })
 
+        // Filter search
+        app.get('/search', async (req, res) => {
+            const search = req.query.search
+            const cursor = services.find({ serviceName: { $regex: search, $options: "i" } })
+            const result = await cursor.toArray()
+            res.send(result)
+        })
+
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     }
