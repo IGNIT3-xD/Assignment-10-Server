@@ -4,12 +4,13 @@ require('dotenv').config()
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 const admin = require("firebase-admin");
-const serviceAccount = require('./herohome-key.json');
+// const serviceAccount = require('./herohome-key.json');
+const decoded = Buffer.from(process.env.FB_KEY, "base64").toString("utf8");
+const serviceAccount = JSON.parse(decoded);
 
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount)
 });
-
 
 const app = express()
 const port = process.env.PORT || 5000
@@ -53,7 +54,7 @@ app.get('/', (req, res) => {
 
 async function run() {
     try {
-        await client.connect();
+        // await client.connect();
         const db = client.db('home_hero')
         const services = db.collection('services')
         const booking = db.collection('booking')
@@ -206,7 +207,7 @@ async function run() {
             res.send(myBookings)
         })
 
-        await client.db("admin").command({ ping: 1 });
+        // await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     }
     finally {
