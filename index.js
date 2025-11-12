@@ -3,11 +3,39 @@ const cors = require('cors')
 require('dotenv').config()
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
+const admin = require("firebase-admin");
+const serviceAccount = require('./herohome-key.json');
+
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+});
+
+
 const app = express()
 const port = process.env.PORT || 5000
 
 app.use(cors())
 app.use(express.json())
+
+const verifyFbToken = async (req, res, next) => {
+    const authorization = req.headers.authorization
+    if (!authorization) {
+        return res.status(401).send({ messege: 'Unauthorized Access' })
+    }
+
+    const token = authorization.split(' ')[1]
+    if (!token) {
+        return res.status(401).send({ messege: 'Unauthorized Access' })
+    }
+
+    try {
+        await admin.auth().verifyIdToken(token)
+        next()
+    }
+    catch {
+        return res.status(401).send({ messege: 'Unauthorized Access' })
+    }
+}
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.apwz10b.mongodb.net/?appName=Cluster0`;
 const client = new MongoClient(uri, {
@@ -52,7 +80,7 @@ async function run() {
         })
 
         // Service details
-        app.get('/services/:id', async (req, res) => {
+        app.get('/services/:id', verifyFbToken, async (req, res) => {
             // console.log(req.params.id);
             const query = { _id: new ObjectId(req.params.id) }
             const result = await services.findOne(query)
@@ -60,14 +88,14 @@ async function run() {
         })
 
         // Get booking data from customer
-        app.post('/booking', async (req, res) => {
+        app.post('/booking', verifyFbToken, async (req, res) => {
             const newBooking = req.body
             const result = await booking.insertOne(newBooking)
             res.send(result)
         })
 
         // My bookings
-        app.get('/booking', async (req, res) => {
+        app.get('/booking', verifyFbToken, async (req, res) => {
             const email = req.query.email
             // console.log(email);
             const cursor = booking.find({ customer_email: email }).sort({ date: 1 })
@@ -76,21 +104,21 @@ async function run() {
         })
 
         // Delete booking
-        app.delete('/booking/:id', async (req, res) => {
+        app.delete('/booking/:id', verifyFbToken, async (req, res) => {
             const query = { _id: new ObjectId(req.params.id) }
             const result = await booking.deleteOne(query)
             res.send(result)
         })
 
         // Add services
-        app.post('/services', async (req, res) => {
+        app.post('/services', verifyFbToken, async (req, res) => {
             const newService = req.body
             const result = await services.insertOne(newService)
             res.send(result)
         })
 
         // My services
-        app.get('/my-services', async (req, res) => {
+        app.get('/my-services', verifyFbToken, async (req, res) => {
             const email = req.query.email
             // console.log(email);
 
@@ -100,14 +128,14 @@ async function run() {
         })
 
         // Delete service
-        app.delete('/my-services/:id', async (req, res) => {
+        app.delete('/my-services/:id', verifyFbToken, async (req, res) => {
             const query = { _id: new ObjectId(req.params.id) }
             const result = await services.deleteOne(query)
             res.send(result)
         })
 
         // Update service
-        app.patch('/my-services/:id', async (req, res) => {
+        app.patch('/my-services/:id', verifyFbToken, async (req, res) => {
             const query = { _id: new ObjectId(req.params.id) }
             const updatedService = req.body
             // console.log(updatedService);
@@ -120,7 +148,7 @@ async function run() {
         })
 
         // Review and rating
-        app.post('/reviews', async (req, res) => {
+        app.post('/reviews', verifyFbToken, async (req, res) => {
             const { serviceId, userEmail, userName, rating, comment } = req.body;
             // console.log(req.body);
             const newReview = {
@@ -146,14 +174,14 @@ async function run() {
         })
 
         // Get all reviews
-        app.get('/reviews', async (req, res) => {
+        app.get('/reviews', verifyFbToken, async (req, res) => {
             const cursor = reviews.find()
             const result = await cursor.toArray()
             res.send(result)
         })
 
         // Get reviews by per service
-        app.get('/reviews/:serviceId', async (req, res) => {
+        app.get('/reviews/:serviceId', verifyFbToken, async (req, res) => {
             const query = { serviceId: new ObjectId(req.params.serviceId) }
             // console.log(query);
             const result = await reviews.find(query).toArray()
@@ -166,6 +194,16 @@ async function run() {
             const cursor = services.find({ serviceName: { $regex: search, $options: "i" } })
             const result = await cursor.toArray()
             res.send(result)
+        })
+
+        // Stats
+        app.get('/my-stats', verifyFbToken, async (req, res) => {
+            const email = req.query.email
+            const myServices = await services.find({ providerEmail: email }).toArray()
+            const myServicesIds = myServices.map(s => s._id.toString())
+
+            const myBookings = await booking.find({ service_id: { $in: myServicesIds } }).toArray();
+            res.send(myBookings)
         })
 
         await client.db("admin").command({ ping: 1 });
